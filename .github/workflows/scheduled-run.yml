@@ -1,0 +1,19 @@
+name: Scheduled Run
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour (UTC). Change as needed.
+  workflow_dispatch:
+
+jobs:
+  call-run-endpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /run endpoint
+        env:
+          TARGET_URL: ${{ secrets.RUN_URL }}
+        run: |
+          if [ -z "$TARGET_URL" ]; then
+            echo "Missing RUN_URL secret"
+            exit 1
+          fi
+          curl -sSf -X POST "$TARGET_URL"
