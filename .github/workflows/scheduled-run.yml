@@ -1,24 +1,12 @@
-name: Scheduled Run
+name: Scheduled Run (disabled)
 on:
-  schedule:
-    - cron: '0 * * * *'   # every hour (UTC). Change as needed.
   workflow_dispatch:
 
 jobs:
-  call-run-endpoint:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - name: Call /run endpoint with secret header
-        env:
-          TARGET_URL: ${{ secrets.RUN_URL }}
-          RUN_KEY: ${{ secrets.RUN_KEY }}
+      - name: Disabled
         run: |
-          if [ -z "$TARGET_URL" ]; then
-            echo "Missing RUN_URL secret"
-            exit 1
-          fi
-          if [ -z "$RUN_KEY" ]; then
-            echo "Missing RUN_KEY secret"
-            exit 1
-          fi
-          curl -sSf -X POST -H "X-Run-Key: $RUN_KEY" "$TARGET_URL"
+          echo "This workflow has been disabled in favor of .github/workflows/scheduled-task.yml (GitHub Actions-only)."
+          echo "If you want to re-enable scheduled remote POSTs, restore the original workflow and set RUN_URL/RUN_KEY secrets."
