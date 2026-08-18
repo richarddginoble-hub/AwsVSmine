@@ -11,17 +11,22 @@ jobs:
   poll:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
+      - name: Checkout repository via git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          echo "Cloning repository into workspace..."
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" .
+          git rev-parse --is-inside-work-tree || true
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+      - name: Ensure Python is installed
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-venv python3-pip git
 
       - name: Install dependencies
-        run: pip install -r requirements-poller.txt
+        run: python3 -m pip install -r requirements-poller.txt
 
       - name: Run Telegram poller
         env:
@@ -35,26 +40,19 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
         run: |
-          python poll_telegram.py
-
-      - name: Upload run output artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: telegram-poller-run-output
-          path: |
-            run_output.json
-            run_logs/
+          python3 poll_telegram.py
 
       - name: Commit offset and pending state if changed
         if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "$(git status --porcelain telegram_offset.json pending_confirmations.json run_output.json run_logs)" ]; then
             git config user.email "actions@github.com"
             git config user.name "github-actions[bot]"
             git add telegram_offset.json pending_confirmations.json run_output.json run_logs || true
             git commit -m "Update telegram poller state" || true
-            git push || true
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" || true
           else
             echo "No state changes to commit."
           fi
