@@ -8,12 +8,17 @@ jobs:
   call-run-endpoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Call /run endpoint
+      - name: Call /run endpoint with secret header
         env:
           TARGET_URL: ${{ secrets.RUN_URL }}
+          RUN_KEY: ${{ secrets.RUN_KEY }}
         run: |
           if [ -z "$TARGET_URL" ]; then
             echo "Missing RUN_URL secret"
             exit 1
           fi
-          curl -sSf -X POST "$TARGET_URL"
+          if [ -z "$RUN_KEY" ]; then
+            echo "Missing RUN_KEY secret"
+            exit 1
+          fi
+          curl -sSf -X POST -H "X-Run-Key: $RUN_KEY" "$TARGET_URL"
