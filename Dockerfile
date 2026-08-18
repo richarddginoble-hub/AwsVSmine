@@ -1,9 +1,12 @@
+# Use a minimal Python image
 FROM python:3.11-slim
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-EXPOSE 8080
-CMD ["gunicorn", "app:app", "-b", "0.0.0.0:8080", "--workers", "2"]
+
+# install dependencies
+COPY requirements-bot.txt /app/requirements-bot.txt
+RUN pip install --no-cache-dir -r requirements-bot.txt
+
+# copy bot
+COPY telegram_bot.py /app/telegram_bot.py
+
+CMD ["python", "telegram_bot.py"]

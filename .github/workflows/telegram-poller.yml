@@ -2,6 +2,7 @@ name: Telegram Poller
 on:
   schedule:
     - cron: '*/5 * * * *'  # every 5 minutes
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -26,17 +27,34 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           AUTH_USERS: ${{ secrets.AUTH_USERS }}
+          # confirmation options
+          REQUIRE_CONFIRMATION: true
+          CONFIRM_TIMEOUT: 600
+          # GitHub env for run URL
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
         run: |
           python poll_telegram.py
 
-      - name: Commit offset if changed
+      - name: Upload run output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-poller-run-output
+          path: |
+            run_output.json
+            run_logs/
+
+      - name: Commit offset and pending state if changed
+        if: always()
         run: |
-          if [ -n "$(git status --porcelain telegram_offset.json)" ]; then
+          if [ -n "$(git status --porcelain telegram_offset.json pending_confirmations.json run_output.json run_logs)" ]; then
             git config user.email "actions@github.com"
             git config user.name "github-actions[bot]"
-            git add telegram_offset.json
-            git commit -m "Update telegram_offset.json from poller"
-            git push
+            git add telegram_offset.json pending_confirmations.json run_output.json run_logs || true
+            git commit -m "Update telegram poller state" || true
+            git push || true
           else
-            echo "No offset changes to commit."
+            echo "No state changes to commit."
           fi
