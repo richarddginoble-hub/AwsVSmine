@@ -1,0 +1,42 @@
+name: Telegram Poller
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # every 5 minutes
+
+permissions:
+  contents: write
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-poller.txt
+
+      - name: Run Telegram poller
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          AUTH_USERS: ${{ secrets.AUTH_USERS }}
+        run: |
+          python poll_telegram.py
+
+      - name: Commit offset if changed
+        run: |
+          if [ -n "$(git status --porcelain telegram_offset.json)" ]; then
+            git config user.email "actions@github.com"
+            git config user.name "github-actions[bot]"
+            git add telegram_offset.json
+            git commit -m "Update telegram_offset.json from poller"
+            git push
+          else
+            echo "No offset changes to commit."
+          fi
